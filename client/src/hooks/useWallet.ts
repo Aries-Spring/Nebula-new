@@ -1,11 +1,13 @@
 import { useWallet as useWalletAdapter } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { useQuery } from "@tanstack/react-query";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 export function useWallet() {
   const wallet = useWalletAdapter();
   const { connection } = useConnection();
+  const { setVisible } = useWalletModal();
 
   // Fetch SOL balance
   const { data: balance, ...balanceQuery } = useQuery({
@@ -13,6 +15,7 @@ export function useWallet() {
     queryFn: async () => {
       if (!wallet.publicKey) return 0;
       const balance = await connection.getBalance(wallet.publicKey);
+      console.log("balance in useWallet", balance / LAMPORTS_PER_SOL);
       return balance / LAMPORTS_PER_SOL;
     },
     enabled: !!wallet.publicKey,
@@ -29,15 +32,10 @@ export function useWallet() {
     isConnecting: wallet.connecting,
     balance: balance ?? 0,
     isLoadingBalance: balanceQuery.isLoading,
+    refetchBalance: balanceQuery.refetch,
     formatAddress,
     isConnected: !!wallet.publicKey && wallet.connected,
-    connect: async () => {
-      try {
-        await wallet.connect();
-      } catch (error) {
-        console.error("Failed to connect wallet:", error);
-      }
-    },
+    connect: () => setVisible(true),
     disconnect: async () => {
       try {
         await wallet.disconnect();

@@ -50,10 +50,11 @@ export function useStaking() {
           StakeProgram.programId,
           {
             filters: [
+              { dataSize: 200 }, // Stake accounts are 200 bytes
               {
                 memcmp: {
                   offset: 12, // Stake account authorized staker offset
-                  bytes: wallet.publicKey.toBytes().toString(),
+                  bytes: wallet.publicKey.toBase58(),
                 },
               },
             ],
@@ -139,14 +140,16 @@ export function useStaking() {
     const walletBalance = await connection.getBalance(wallet.publicKey)
     const walletBalanceSol = walletBalance / LAMPORTS_PER_SOL
 
-    // Check if user has enough balance (including rent for new stake account)
-    const requiredBalance = amount
+    const rentExemption = await connection.getMinimumBalanceForRentExemption(
+      StakeProgram.space
+    )
+    const requiredBalance = amount + rentExemption / LAMPORTS_PER_SOL
     if (walletBalanceSol < requiredBalance) {
       toast({
         title: 'Insufficient balance',
         description: `You need at least ${requiredBalance.toFixed(
           2
-        )} SOL (including rent).`,
+        )} SOL (stake amount + rent for new account).`,
         variant: 'destructive',
       })
       return null
@@ -158,11 +161,6 @@ export function useStaking() {
       const transaction = new Transaction()
       const stakeAccountKeypair = Keypair.generate()
       const stakeAccountPubkey = stakeAccountKeypair.publicKey
-
-      // Calculate rent exemption
-      const rentExemption = await connection.getMinimumBalanceForRentExemption(
-        StakeProgram.space
-      )
 
       // Create stake account
       transaction.add(

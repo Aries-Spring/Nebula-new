@@ -38,16 +38,16 @@ export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const { width } = useWindowSize();
-  
-  const { walletAddress, isConnecting, balance, connect, disconnect, isConnected } = useWallet();
-  const { 
-    stake, 
-    unstake, 
-    isStaking, 
-    isUnstaking, 
+
+  const { walletAddress, isConnecting, balance, connect, disconnect, isConnected, isLoadingBalance, refetchBalance } = useWallet();
+  const {
+    stake,
+    unstake,
+    isStaking,
+    isUnstaking,
     totalStaked,
     stakeAccounts,
-    refetchStakeAccounts 
+    refetchStakeAccounts
   } = useStaking();
   const { toast } = useToast();
 
@@ -63,30 +63,37 @@ export default function Home() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [handleMouseMove]);
 
+  // Refetch balance when stake modal opens so displayed balance is fresh
+  useEffect(() => {
+    if (activeModal === "stake" && isConnected) {
+      refetchBalance();
+    }
+  }, [activeModal, isConnected, refetchBalance]);
+
   const handlePlanetClick = (type: "stake" | "unstake" | "security" | "tools") => {
     setActiveModal(type);
   };
 
-  // Calculate available balance (wallet balance - rent if no stake accounts)
+  // Calculate available balance (wallet balance)
   const availableBalance = useMemo(() => {
     if (!isConnected) return 0;
-    // If user has no stake accounts, reserve rent for new account (~2.28 SOL)
-    const rentReserve = stakeAccounts.length === 0 ? 2.28 : 0;
-    return Math.max(0, balance - rentReserve);
-  }, [balance, isConnected, stakeAccounts.length]);
+    console.log("balance", balance);
+    return balance;
+  }, [balance, isConnected]);
 
-  const handleStake = async (amount: number) => {
+  const handleStake = async (amount: number): Promise<boolean> => {
     if (!isConnected) {
       toast({
         title: "Wallet Required",
         description: "Please connect your wallet to stake.",
       });
-      return;
+      return false;
     }
     const signature = await stake(amount);
     if (signature) {
       refetchStakeAccounts();
     }
+    return !!signature;
   };
 
   const handleUnstake = async (amount: number) => {
@@ -154,7 +161,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
       <StarField mousePosition={mousePosition} />
-      
+
       <Header
         walletAddress={walletAddress}
         onConnect={connect}
@@ -265,6 +272,7 @@ export default function Home() {
         isStaking={isStaking}
         isConnected={isConnected}
         onConnect={connect}
+        isLoadingBalance={isLoadingBalance}
       />
 
       <UnstakeModal

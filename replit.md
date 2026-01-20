@@ -59,7 +59,7 @@ client/src/
 - Dark mode only (space theme)
 
 ## Running the Project
-The application runs via `npm run dev` which starts an Express server for the backend and Vite for the frontend on port 5000.
+The application runs via `npm run dev` which starts an Express server for the backend and Vite for the frontend on port 3000.
 
 ## User Preferences
 - Space/cosmic theme with immersive animations

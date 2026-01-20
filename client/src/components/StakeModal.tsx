@@ -9,13 +9,14 @@ interface StakeModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableBalance: number;
-  onStake: (amount: number) => Promise<void>;
+  onStake: (amount: number) => Promise<boolean>;
   isStaking: boolean;
   isConnected: boolean;
   onConnect: () => void;
+  isLoadingBalance?: boolean;
 }
 
-export function StakeModal({ isOpen, onClose, availableBalance, onStake, isStaking, isConnected, onConnect }: StakeModalProps) {
+export function StakeModal({ isOpen, onClose, availableBalance, onStake, isStaking, isConnected, onConnect, isLoadingBalance }: StakeModalProps) {
   const [amount, setAmount] = useState("");
 
   const handleHalf = () => {
@@ -30,9 +31,11 @@ export function StakeModal({ isOpen, onClose, availableBalance, onStake, isStaki
   const handleStake = async () => {
     const numAmount = parseFloat(amount);
     if (numAmount > 0 && numAmount <= availableBalance) {
-      await onStake(numAmount);
-      setAmount("");
-      onClose();
+      const ok = await onStake(numAmount);
+      if (ok) {
+        setAmount("");
+        onClose();
+      }
     }
   };
 
@@ -129,7 +132,7 @@ export function StakeModal({ isOpen, onClose, availableBalance, onStake, isStaki
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Available Balance</span>
                 <span className="text-white font-medium" data-testid="text-available-balance">
-                  {availableBalance.toFixed(2)} SOL
+                  {isLoadingBalance ? "Loading..." : `${availableBalance.toFixed(2)} SOL`}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
